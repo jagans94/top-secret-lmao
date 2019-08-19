@@ -21,5 +21,3 @@ def _make_ndarray(values):
     '''
     return make_ndarray(values)
 
-# Test decorators
-

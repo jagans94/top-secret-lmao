@@ -1,6 +1,13 @@
 import grpc
 from google.protobuf import text_format
-import warnings
+
+def unwrap_pb(obj):
+    if isinstance(obj, Message.__subclasses__()):
+        return obj._protobuf
+    return obj
+
+def wrap_pb(pb, cls):
+    return cls()._protobuf
 
 class Message(object):
     def __init__(self, protobuf, **kwargs):
@@ -15,8 +22,7 @@ class Message(object):
             val = self._unwrap_pb(val)
             if val is not None:
                 # use the class attribute setter method
-                if hasattr(self, attr):
-                    setattr(self, attr, val)
+                setattr(self, attr, val)
 
     def _unwrap_pb(self, val):
         # extract protobuf, if the nested message shares the same base class, 
@@ -48,10 +54,10 @@ class Message(object):
             f.write(self._protobuf.SerializeToString())            
 
     def copy(self, obj):
-        self._protobuf.CopyFrom(self._unwrapped(obj))
+        self._protobuf.CopyFrom(self._unwrap_pb(obj))
 
     def merge(self, obj):
-        self._protobuf.MergeFrom(self._unwrapped(obj))
+        self._protobuf.MergeFrom(self._unwrap_pb(obj))
 
     @property
     def is_initialized(self):
@@ -65,6 +71,13 @@ class GRPCService(object):
     def __init__(self, server, timeout=5):
         self.channel = self.create_insecure_channel(server)
         self.timeout = timeout
+        
+    def _unwrap_pb(self, val):
+        # extract protobuf, if the nested message shares the same base class, 
+        # i.e. `Message`
+        if isinstance(val, Message):
+            return val._protobuf
+        return val
 
     def create_secure_channel(self):
         raise NotImplementedError

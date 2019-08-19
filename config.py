@@ -4,6 +4,7 @@ from tensorflow_serving.config import logging_config_pb2
 from tensorflow_serving.sources.storage_path import file_system_storage_path_source_pb2
 
 from base import Message, GRPCService
+from sources import ServableVersionPolicy
 
 class ModelConfig(Message):
     def __init__(self, name=None, base_path=None, model_platform=None,
@@ -45,22 +46,9 @@ class ModelConfig(Message):
         return self._protobuf.model_version_policy
         
     @model_version_policy.setter
-    def model_version_policy(self, _policy):
-        policy = file_system_storage_path_source_pb2.FileSystemStoragePathSourceConfig.ServableVersionPolicy() 
-        if isinstance(_policy, dict):
-            for policy_type, value in _policy.items():
-                if policy_type == 'latest':
-                    policy.latest.num_versions = value
-                elif policy_type == 'specific':
-                    if not isinstance(value, (list, tuple)):
-                        value = [value]
-                    policy.specific.ClearField('versions')
-                    policy.specific.versions.extend(value)
-        elif isinstance(_policy, str) and _policy == 'all':
-                policy.all.SetInParent()
-        else:
-            raise ValueError("Unrecognized value `{}` given for attribute `model_version_policy`.".format(_policy))
-        self._protobuf.model_version_policy.CopyFrom(policy)
+    def model_version_policy(self, _policy_choice):
+        model_version_policy = ServableVersionPolicy(_policy_choice)
+        self._protobuf.model_version_policy.CopyFrom(self._unwrap_pb(model_version_policy))
 
     @property
     def version_labels(self):
