@@ -64,7 +64,8 @@ class PredictRequest(Message):
 
     @model_spec.setter
     def model_spec(self, _model_spec):
-        self._protobuf.model_spec.CopyFrom(self._unwrap_pb(_model_spec))
+        _model_spec = self._unwrap_pb(_model_spec)
+        self._protobuf.model_spec.CopyFrom(_model_spec)
 
     @property
     def inputs(self):
@@ -83,6 +84,7 @@ class PredictRequest(Message):
     def output_filter(self, _list):
         if not isinstance(_list, (list, tuple)):
             _list = [_list]
+        # the field is cleared to facilitate initializing with a fresh list
         self._protobuf.ClearField('output_filter')
         self._protobuf.output_filter.extend(_list)
 
@@ -94,6 +96,7 @@ class PredictResponse(Message):
                          outputs=outputs)
 
     def parse_outputs(self):
+        # raise NotImplementedError
         parse_outputs = None
         print(self._protobuf.outputs)
         return parse_outputs
@@ -104,8 +107,7 @@ class PreditionService(GRPCService):
         self.stub = prediction_service_pb2_grpc.PredictionServiceStub(self.channel)
 
     def predict(self, request):
+        request = self._unwrap_pb(request)
         response = PredictResponse()
-        if not request.is_intialized(): # Test this by sending a non-initialized request
-            raise ValueError('The request needs to be initialized before sending.')
-        response.copy(self.stub.Predict(request._protobuf, self.timeout))
+        response.copy(self.stub.Predict(request, self.timeout))
         return response

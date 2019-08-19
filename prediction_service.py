@@ -1,53 +1,40 @@
+'''
+Typical Usage:
+
+predict_request = PredictRequest(model_spec, inputs, output_filters)
+predict_request.read_inputs(**kwargs) # reads input key : value(numpy array) pairs
+
+predict_service = PredictionService(server, timeout)
+predict_response = predict_service.predict(predict_request)
+
+outputs = predict_response.parse_outputs()
+'''
 import grpc
 from tensorflow_serving.apis import prediction_service_pb2
 from tensorflow_serving.apis import predict_pb2
 
-from base import _Message, GRPCService
+from base import _Message, _GRPCService
 from utils import _make_tensor_proto, _make_ndarray
-from utils import unpack_dict, unpack_list
 from pbs import ModelSpec
 
 class PredictRequest(_Message):
     def __init__(self, model_spec=None, inputs=None, output_filter=None):
-        super().__init__(predict_pb2.PredictRequest(),
-                         model_spec=model_spec,
-                         inputs=inputs,
-                         output_filter=output_filter)
+        super().__init__(predict_pb2.PredictRequest(
+            model_spec=model_spec,
+            inputs=inputs,
+            output_filter=output_filter))
+        
+    def read_inputs(self, **inputs):
+        '''Reads (key, value) pairs into the request.
+        '''
+        for key, np_arr in inputs.items():
+            self.protobuf.inputs[key].CopyFrom(_make_tensor_proto(np_arr))
 
-    @property
-    def model_spec(self):
-        return self.protobuf.model_spec
-
-    @model_spec.setter
-    def model_spec(self, _model_spec):
-        self.protobuf.model_spec.CopyFrom(_model_spec)
-
-    @property
-    def inputs(self):
-        return self.protobuf.inputs
-
-    @inputs.setter
-    def inputs(self, _dict):
-        for key, values in _dict.items():
-            self.protobuf.inputs[key].CopyFrom(_make_tensor_proto(values))
-
-    @property
-    def output_filter(self):
-        return self.protobuf.output_filter
-
-    @output_filter.setter
-    def output_filter(self, _list):
-        if not isinstance(_list, (list, tuple)):
-            _list = [_list]
-        self.protobuf.ClearField('output_filter')
-        self.protobuf.output_filter.extend(_list)
-
+    def extend(self, attr, )
 
 class PredictResponse(_Message):
     def __init__(self, model_spec=None, outputs=None):
-        super().__init__(predict_pb2.PredictResponse(),
-                         model_spec=model_spec,
-                         outputs=outputs)
+        super().__init__(predict_pb2.PredictResponse(), model_spec, outputs)
 
     def parse_outputs(self):
         parse_outputs = None

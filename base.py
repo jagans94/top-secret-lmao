@@ -2,66 +2,68 @@ import grpc
 from google.protobuf import text_format
 import warnings
 
-class Message(object):
-    def __init__(self, protobuf, **kwargs):
-        self._protobuf = protobuf
-        self.update(**kwargs)
-    
+class _Message(object):
+    def __init__(self, protobuf):
+        self.protobuf = protobuf
+
     def update(self, **kwargs):
         if kwargs is None:
             raise ValueError('No values provided.')
         
-        for attr, val in kwargs.items():
-            val = self._unwrap_pb(val)
-            if val is not None:
-                # use the class attribute setter method
-                if hasattr(self, attr):
-                    setattr(self, attr, val)
+        attr_not_found = list() 
+        '''
+        Q: A catch mechanism for `attr`s that could not be set. Is it needed? Why?
+        A: Not needed, I guess, since `google.protobuf.message` takes care of handling 
+        the errors. Let's take a call on it in the future, depending on if and how the code breaks.
+        The only way I see this making sense, is to let the errors percolate with sensible warnings, 
+        i.e. shouldn't cause the user to go mad. IMHO.
 
-    def _unwrap_pb(self, val):
-        # extract protobuf, if the nested message shares the same base class, 
-        # i.e. `Message`
-        if isinstance(val, self.__class__.__bases__):
-            return val._protobuf
-        return val
+        Simplifying interface for setting some complex `attr`s that can't be set directly
+        should be done by customizing the derived class to manage around the said `attr`s.
+        This makes sense, since each protobuf definition is different.
+        '''
+        for attr, val in kwargs.items():
+            if hasattr(self.protobuf, attr) and val is not None: 
+                setattr(self.protobuf, attr, val)
+            else:
+                attr_not_found.append(attr)
+        if attr_not_found:
+            raise warnings.warn('The follwing attributes were not found: {}'.format(attr_not_found))
 
     def __str__(self):
-        return str(self._protobuf)
-
-    def __repr__(self):
-        return repr(self._protobuf)
+        return str(self.protobuf)
             
     def from_text(self, path):
-        with open(path, 'r+') as f: 
-            text_format.Merge(text=f.read(), message=self._protobuf)           
+        with open(path, 'r+') as f:
+            self.protobuf.CopyFrom(text_format.Parse(text=f.read(), message=self.protobuf)) 
 
     def to_text(self, path):
         with open(path, 'w+') as f:
-            f.write(text_format.MessageToString(message=self._protobuf))
+            f.write(text_format.MessageToString(message=self.protobuf))
 
     def from_pb(self, path):
         with open(path, 'rb') as f:
-            self._protobuf.ParseFromString(f.read())
+            self.protobuf.ParseFromString(f.read())
 
     def to_pb(self, path):
         with open(path, 'wb') as f:
-            f.write(self._protobuf.SerializeToString())            
+            f.write(self.protobuf.SerializeToString())            
 
-    def copy(self, obj):
-        self._protobuf.CopyFrom(self._unwrapped(obj))
+    def copy(self, protobuf):
+        self.protobuf.CopyFrom(protobuf)
 
-    def merge(self, obj):
-        self._protobuf.MergeFrom(self._unwrapped(obj))
+    def merge(self, protobuf):
+        self.protobuf.MergeFrom(protobuf)
 
     @property
     def is_initialized(self):
-        return self._protobuf.IsInitialized()
+        return self.protobuf.IsInitialized()
     
     @property
     def byte_size(self):
-        return self._protobuf.ByteSize()
+        return self.protobuf.ByteSize()
 
-class GRPCService(object):
+class _GRPCService(object):
     def __init__(self, server, timeout=5):
         self.channel = self.create_insecure_channel(server)
         self.timeout = timeout

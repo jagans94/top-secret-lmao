@@ -21,5 +21,13 @@ def _make_ndarray(values):
     '''
     return make_ndarray(values)
 
-# Test decorators
-
+# Usage will see later
+def oneof(first, second):
+    '''
+    Either first should be None or second should be None
+    '''
+    if first is None and second is None:
+        return None
+    if first is not None and second is not None:
+        return False
+    return True
