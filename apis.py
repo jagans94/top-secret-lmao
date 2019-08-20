@@ -167,6 +167,8 @@ class GetModelMetadataResponse(Message):
     def metadata(self, _dict):
         raise AttributeError("Attribute is read-only, can't be set.")
 
+    # TODO: Add a method to parse the response
+
         
 class PredictionService(GRPCService):
     def __init__(self, server):
@@ -186,11 +188,26 @@ class PredictionService(GRPCService):
         return response
     
     
-
-class ReloadConfigRequest(_Message):
+class ReloadConfigRequest(Message):
     def __init__(self, config_list=None):
-        super().__init__(model_management_pb2.ReloadConfigRequest(), config_list)
+        super().__init__(model_management_pb2.ReloadConfigRequest(), 
+                         config_list)
     
+    @property
+    def config_list(self):
+        return self._protobuf.metadata_field
+
+    @metadata_field.setter
+    def metadata_field(self, _list):
+        if isinstance(_list, (tuple, list)) and len(_list) != 1 or \
+            _list[0] not in  GetModelMetadataRequest._supported_metadatafields:
+            raise AttributeError('Currently, the `metadata_field` \
+                only accepts `signature_def`.')
+        if not isinstance(_list, (list, tuple)):
+            _list = [_list]
+        self._protobuf.ClearField('metadata_field')
+        self._protobuf.metadata_field.extend(_list)
+
     def extend(self, *configs):
         cfg_pbs = [c.protobuf for c in configs]
         self.protobuf.model_config_list.extend(cfg_pbs)
