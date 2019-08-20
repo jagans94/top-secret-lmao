@@ -1,13 +1,16 @@
 import grpc
 from google.protobuf import text_format
 
-def unwrap_pb(obj):
-    if isinstance(obj, Message.__subclasses__()):
+def _unwrap_pb(obj):
+    if isinstance(obj, Message):
         return obj._protobuf
     return obj
 
-def wrap_pb(pb, cls):
-    return cls()._protobuf
+
+def _wrap_pb(wp, pb):
+    wp._protobuf.CopyFrom(pb)
+    return wp
+
 
 class Message(object):
     def __init__(self, protobuf, **kwargs):
@@ -15,21 +18,14 @@ class Message(object):
         self.update(**kwargs)
     
     def update(self, **kwargs):
-        if kwargs is None:
-            raise ValueError('No values provided.')
+        if kwargs is None:  
+            return
         
         for attr, val in kwargs.items():
-            val = self._unwrap_pb(val)
+            val = self.unwrap_pb(val)
             if val is not None:
                 # use the class attribute setter method
                 setattr(self, attr, val)
-
-    def _unwrap_pb(self, val):
-        # extract protobuf, if the nested message shares the same base class, 
-        # i.e. `Message`
-        if isinstance(val, self.__class__.__bases__):
-            return val._protobuf
-        return val
 
     def __str__(self):
         return str(self._protobuf)
@@ -51,13 +47,15 @@ class Message(object):
 
     def to_pb(self, path):
         with open(path, 'wb') as f:
-            f.write(self._protobuf.SerializeToString())            
+            f.write(self._protobuf.SerializeToString())       
 
     def copy(self, obj):
-        self._protobuf.CopyFrom(self._unwrap_pb(obj))
+        obj = self.unwrap_pb(obj)
+        self._protobuf.CopyFrom(obj)
 
     def merge(self, obj):
-        self._protobuf.MergeFrom(self._unwrap_pb(obj))
+        obj = self.unwrap_pb(obj)
+        self._protobuf.MergeFrom(obj)
 
     @property
     def is_initialized(self):
@@ -67,20 +65,35 @@ class Message(object):
     def byte_size(self):
         return self._protobuf.ByteSize()
 
+    @staticmethod
+    def unwrap_pb(obj):
+        return _unwrap_pb(obj)
+
+    @staticmethod
+    def wrap_pb(wp, pb):
+        return _wrap_pb(wp, pb)
+
+
 class GRPCService(object):
-    def __init__(self, server, timeout=5):
+    def __init__(self, server):
         self.channel = self.create_insecure_channel(server)
-        self.timeout = timeout
-        
-    def _unwrap_pb(self, val):
-        # extract protobuf, if the nested message shares the same base class, 
-        # i.e. `Message`
-        if isinstance(val, Message):
-            return val._protobuf
-        return val
 
     def create_secure_channel(self):
         raise NotImplementedError
 
     def create_insecure_channel(self, server):
         return grpc.insecure_channel(server)
+
+    @staticmethod
+    def unwrap_pb(obj):
+        return _unwrap_pb(obj)
+
+    @staticmethod
+    def wrap_pb(wp, pb):
+        return _wrap_pb(wp, obj)
+
+
+# TODO: A class for message map containers
+class MessageMap(object):
+    def __init__(self, **kwargs):
+        pass

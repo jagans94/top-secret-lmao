@@ -1,7 +1,6 @@
 import grpc
 from tensorflow_serving.config import model_server_config_pb2
 from tensorflow_serving.config import logging_config_pb2
-from tensorflow_serving.sources.storage_path import file_system_storage_path_source_pb2
 
 from base import Message, GRPCService
 from sources import ServableVersionPolicy

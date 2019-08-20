@@ -1,8 +1,6 @@
 import grpc
 
-from tensorflow_serving.apis import model_pb2
-from tensorflow_serving.apis import get_model_status_pb2
-from tensorflow_serving.apis import predict_pb2
+from tensorflow_serving.apis import get_model_metadata_pb2, model_pb2, predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 
 from base import Message, GRPCService
@@ -58,12 +56,11 @@ class PredictRequest(Message):
 
     @property
     def model_spec(self):
-        _model_spec = ModelSpec()self._protobuf.model_spec)
-        return self._protobuf.model_spec
+        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
-        self._protobuf.model_spec.CopyFrom(self._unwrap_pb(_model_spec))
+        self._protobuf.model_spec.CopyFrom(self.unwrap_pb(_model_spec))
 
     @property
     def inputs(self):
@@ -94,7 +91,7 @@ class PredictResponse(Message):
         
     @property
     def model_spec(self):
-        return self._protobuf.model_spec
+        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
@@ -116,20 +113,21 @@ class PredictResponse(Message):
 
     
 class GetModelMetadataRequest(Message):
+    
+    _supported_metadatafields = frozenset('signature_def')
+
     def __init__(self, model_spec=None, metadata_field=None):
-        super().__init__(get_model_status_pb2.GetModelMetadataRequest(),
+        super().__init__(get_model_metadata_pb2.GetModelMetadataRequest(),
                          model_spec=model_spec,
                          metadata_field=metadata_field)
         
-    supported_metadatafield = frozen_set()
-
     @property
     def model_spec(self):
-        return self._protobuf.model_spec
+        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
-        self._protobuf.model_spec.CopyFrom(self._unwrap_pb(_model_spec))
+        self._protobuf.model_spec.CopyFrom(self.unwrap_pb(_model_spec))
 
     @property
     def metadata_field(self):
@@ -137,6 +135,10 @@ class GetModelMetadataRequest(Message):
 
     @metadata_field.setter
     def metadata_field(self, _list):
+        if isinstance(_list, (tuple, list)) and len(_list) != 1 or \
+            _list[0] not in  GetModelMetadataRequest._supported_metadatafields:
+            raise AttributeError('Currently, the `metadata_field` \
+                only accepts `signature_def`.')
         if not isinstance(_list, (list, tuple)):
             _list = [_list]
         self._protobuf.ClearField('metadata_field')
@@ -145,13 +147,13 @@ class GetModelMetadataRequest(Message):
         
 class GetModelMetadataResponse(Message):
     def __init__(self, model_spec=None, metadata=None):
-        super().__init__(get_model_status_pb2.GetModelMetadataResponse(),
+        super().__init__(get_model_metadata_pb2.GetModelMetadataResponse(),
                          model_spec=model_spec,
                          metadata=metadata)
         
     @property
     def model_spec(self):
-        return self._protobuf.model_spec
+        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
@@ -165,54 +167,64 @@ class GetModelMetadataResponse(Message):
     def metadata(self, _dict):
         raise AttributeError("Attribute is read-only, can't be set.")
 
-    def parse_outputs(self):
-        parsed_output_dict = dict()
-        for key in self.outputs.keys():
-            parsed_output_dict.setdefault(key, _make_ndarray(self.outputs[key]))
-        return parsed_output_dict
         
 class PredictionService(GRPCService):
-    def __init__(self, server, timeout=5):
-        super().__init__(server, timeout)
+    def __init__(self, server):
+        super().__init__(server)
         self.stub = prediction_service_pb2_grpc.PredictionServiceStub(self.channel)
 
-    def predict(self, request):
-        request = self._unwrap_pb(request)
-        response = PredictResponse()
-        response.copy(self.stub.Predict(request, self.timeout))
+    def predict(self, request, timeout=5):
+        request = self.unwrap_pb(request)
+        response = self.wrap_pb(PredictResponse(),
+                                self.stub.Predict(request, timeout))
         return response
-      
-class PredictRequest(Message):
-    def __init__(self, model_spec=None, inputs=None, output_filter=None):
-        super().__init__(predict_pb2.PredictRequest(),
-                         model_spec=model_spec,
-                         inputs=inputs,
-                         output_filter=output_filter)
 
-    @property
-    def model_spec(self):
-        return self._protobuf.model_spec
+    def get_model_metadata(self, request, timeout=5):
+        request = self.unwrap_pb(request)
+        response = self.wrap_pb(GetModelMetadataResponse(),
+                                self.stub.GetModelMetadata(request, timeout))
+        return response
+    
+    
 
-    @model_spec.setter
-    def model_spec(self, _model_spec):
-        self._protobuf.model_spec.CopyFrom(self._unwrap_pb(_model_spec))
+class ReloadConfigRequest(_Message):
+    def __init__(self, config_list=None):
+        super().__init__(model_management_pb2.ReloadConfigRequest(), config_list)
+    
+    def extend(self, *configs):
+        cfg_pbs = [c.protobuf for c in configs]
+        self.protobuf.model_config_list.extend(cfg_pbs)
 
-    @property
-    def inputs(self):
-        return self._protobuf.inputs
+class ReloadConfigResponse(_Message):
+    def __init__(self, status=None):
+        super().__init__(model_management_pb2.ReloadConfigResponse(), status)
 
-    @inputs.setter
-    def inputs(self, _dict):
-        for key, values in _dict.items():
-            self._protobuf.inputs[key].CopyFrom(_make_tensor_proto(values))
+    # add methods to process status
 
-    @property
-    def output_filter(self):
-        return self._protobuf.output_filter
+class GetModelStatusRequest(_Message):
+    def __init__(self, model_spec=None):
+        super().__init__(get_model_status_pb2.GetModelStatusRequest(),model_spec)
+    
+class GetModelStatusResponse(_Message):
+    def __init__(self, model_version_status=None):
+        super().__init__(get_model_status_pb2.GetModelStatusResponse(), model_version_status)
 
-    @output_filter.setter
-    def output_filter(self, _list):
-        if not isinstance(_list, (list, tuple)):
-            _list = [_list]
-        self._protobuf.ClearField('output_filter')
-        self._protobuf.output_filter.extend(_list)
+class ModelService(_GRPCService):
+    def __init__(self, server, timeout=5):
+        super().__init__(server, timeout)
+        self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
+        self.response = None
+
+    def reload_config(self, request):
+        response = ReloadConfigResponse()
+        if not request.is_intialized(): # Test this by sending a non-initialized request
+            raise ValueError('The request needs to be initialized before sending.')
+        response.copy(self.stub.HandleReloadConfigRequest(request.protobuf, self.timeout))
+        return response
+
+    def get_model_status(self, request):
+        response = GetModelStatusResponse()
+        if not request.is_intialized(): # Test this by sending a non-initialized request
+            raise ValueError('The request needs to be initialized before sending.')
+        response.copy(self.stub.GetModelStatus(request.protobuf, self.timeout))
+        return response

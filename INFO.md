@@ -52,3 +52,9 @@ Two major issues:
 
 <More clarification required>
 
+### Internal vs External:
+
+Each wrapper class contains a private `protobuf` attribute, which is an instance of a protocol buffer message compiled from the corresponding `.proto` file.  Each protocol buffer message can consist of nested child messages, which results in two main complications while working with them:
+
+- The child messages (as well as other non-singular fields) cannot be assigned directly. They can be assigned, by setting any of the attributes of the child message or by calling `SetInParent()` method on the said child message.
+- The wrapper, i.e. the `Message` class and its sub-classes, abstract around the protocol buffer
