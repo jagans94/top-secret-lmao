@@ -58,3 +58,9 @@ Each wrapper class contains a private `protobuf` attribute, which is an instance
 
 - The child messages (as well as other non-singular fields) cannot be assigned directly. They can be assigned, by setting any of the attributes of the child message or by calling `SetInParent()` method on the said child message.
 - The wrapper, i.e. the `Message` class and its sub-classes, abstract around the protocol buffer
+
+
+
+### Request vs Response:
+
+Shouldn't be able to set values to response attributes; therefore initialisation support can be removed.

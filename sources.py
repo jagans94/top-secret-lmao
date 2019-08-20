@@ -41,7 +41,6 @@ class ServableVersionPolicy(Message):
     def _all(self, value):
         if value is not None:
             self._protobuf.all.SetInParent()
-        return
 
     def clear(self):
         self._protobuf.ClearField('policy_choice')

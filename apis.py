@@ -189,44 +189,64 @@ class PredictionService(GRPCService):
     
     
 class ReloadConfigRequest(Message):
-    def __init__(self, config_list=None):
+    def __init__(self, model_config_list=None, custom_model_config=None):
         super().__init__(model_management_pb2.ReloadConfigRequest(), 
-                         config_list)
+                         model_config_list=model_config_list,
+                         custom_model_config=custom_model_config)
     
     @property
-    def config_list(self):
-        return self._protobuf.metadata_field
+    def model_config_list(self):
+        return self._protobuf.model_config_list
 
-    @metadata_field.setter
-    def metadata_field(self, _list):
-        if isinstance(_list, (tuple, list)) and len(_list) != 1 or \
-            _list[0] not in  GetModelMetadataRequest._supported_metadatafields:
-            raise AttributeError('Currently, the `metadata_field` \
-                only accepts `signature_def`.')
+    @model_config_list.setter
+    def model_config_list(self, _list):
         if not isinstance(_list, (list, tuple)):
             _list = [_list]
-        self._protobuf.ClearField('metadata_field')
-        self._protobuf.metadata_field.extend(_list)
+        self._protobuf.ClearField('model_config_list')
+        self._protobuf.model_config_list.extend(_list)
 
-    def extend(self, *configs):
-        cfg_pbs = [c.protobuf for c in configs]
-        self.protobuf.model_config_list.extend(cfg_pbs)
+    @property
+    def custom_model_config(self):
+        return NotImplementedError
 
-class ReloadConfigResponse(_Message):
+    @custom_model_config.setter
+    def custom_model_config(self, value):
+        return NotImplementedError
+
+class ReloadConfigResponse(Message):
     def __init__(self, status=None):
-        super().__init__(model_management_pb2.ReloadConfigResponse(), status)
+        super().__init__(model_management_pb2.ReloadConfigResponse(), 
+                         status=status)
+    
+    @property
+    def status(self):
+        # TODO: Need to create a wrapper for status proto
+        return self._protobuf.status 
 
-    # add methods to process status
+    @status.setter
+    def status(self, value):
+        raise AttributeError("Attribute is read-only, can't be set.")
+
+    # TODO: Add method to process status
 
 class GetModelStatusRequest(_Message):
     def __init__(self, model_spec=None):
-        super().__init__(get_model_status_pb2.GetModelStatusRequest(),model_spec)
+        super().__init__(get_model_status_pb2.GetModelStatusRequest(), 
+                         model_spec=model_spec)
+    
+    @property
+    def model_spec(self):
+        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
+
+    @model_spec.setter
+    def model_spec(self, _model_spec):
+        self._protobuf.model_spec.CopyFrom(self.unwrap_pb(_model_spec))
     
 class GetModelStatusResponse(_Message):
     def __init__(self, model_version_status=None):
         super().__init__(get_model_status_pb2.GetModelStatusResponse(), model_version_status)
 
-class ModelService(_GRPCService):
+class ModelService(GRPCService):
     def __init__(self, server, timeout=5):
         super().__init__(server, timeout)
         self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
