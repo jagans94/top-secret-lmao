@@ -192,6 +192,20 @@ class PredictionService(GRPCService):
     
     
 class ReloadConfigRequest(Message):
+    def __init__(self, config=None):
+        super().__init__(model_management_pb2.ReloadConfigRequest(), 
+                         config=model_config_list)
+    
+    @property
+    def config(self):
+        return self.wrap_pb(ModelServerConfig(), self._protobuf.config)
+
+    @config.setter
+    def config(self, _config):
+        self._protobuf.config.CopyFrom(self.unwrap(_config))
+
+
+class ModelServerConfig(Message):
     def __init__(self, model_config_list=None, custom_model_config=None):
         super().__init__(model_management_pb2.ReloadConfigRequest(), 
                          model_config_list=model_config_list,
