@@ -66,3 +66,7 @@ class ModelConfig(Message):
     @logging_config.setter
     def logging_config(self, value):
         raise NotImplementedError('`logging_config` is not supported as of now.')
+        
+class LoggingConfig(Message):
+    def __init__(self):
+        pass
