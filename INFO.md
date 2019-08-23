@@ -59,8 +59,20 @@ Each wrapper class contains a private `protobuf` attribute, which is an instance
 - The child messages (as well as other non-singular fields) cannot be assigned directly. They can be assigned, by setting any of the attributes of the child message or by calling `SetInParent()` method on the said child message.
 - The wrapper, i.e. the `Message` class and its sub-classes, abstract around the protocol buffer
 
-
-
 ### Request vs Response:
 
 Shouldn't be able to set values to response attributes; therefore initialisation support can be removed.
+
+### Defining Message Classes:
+
+Non-complicated message types that who values can be set and gotten easily remain non-modified and in general not implemented. 
+
+However, complicated ones are broken down to make easier python-ic interfaces.
+
+Reusable (across APIs) dependencies are defined separately, whereas dependencies specific to a single (or an already grouped set of APIs) are defined along with the corresponding APIs.
+
+### TODO:
+
+- Annotate field with types, i.e. comment on top of the property if something is repeated or a map or a nested child message.
+- Managing dependencies, i.e. restructuring the files and apis.
+

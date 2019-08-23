@@ -5,14 +5,15 @@ from base import Message
 
 class ServableVersionPolicy(Message):
     '''
-    TODO: Requires a cleaner implementation for setting the one-of values exclusively.
+    TODO: A cleaner implementation for setting the one-of values exclusively, 
+    while preserving input definition in the constructor.
     '''
     def __init__(self, latest=None, specific=None, _all=None):
         super().__init__(file_system_storage_path_source_pb2.FileSystemStoragePathSourceConfig.ServableVersionPolicy(),
                         latest=latest, 
                         specific=specific, 
-                        _all=_all)
-
+                        _all=_all)        
+    
     @property
     def latest(self):
         return self._protobuf.latest

@@ -60,9 +60,29 @@ class ModelConfig(Message):
 
     @property
     def logging_config(self):
-        # `logging_config` is not supported as of now
-        return
+        raise AttributeError('`logging_config` is not supported as of now.')
 
     @logging_config.setter
     def logging_config(self, value):
-        raise NotImplementedError('`logging_config` is not supported as of now.')
+        raise AttributeError('`logging_config` is not supported as of now.')
+
+
+class ModelConfigList(Message):
+    def __init__(self, config=None):
+        super().__init__(model_server_config_pb2.ModelConfigList(),
+                        name=config)
+
+    @property
+    def config(self):
+        # Since you're returning a list of configs, 
+        # you'd need to wrap each element of the list before returning
+        return [self.wrap_pb(ModelConfig(), cfg) for cfg in self._protobuf.config]
+        
+    @config.setter
+    def config(self, _list):
+        if not isinstance(_list, (list, tuple)):
+            _list = [_list]
+        # Unwrap each instance of the list
+        _list = [self.unwrap_pb(cfg) for cfg in _list]
+        self._protobuf.ClearField('model_config_list')
+        self._protobuf.model_config_list.extend(_list)
