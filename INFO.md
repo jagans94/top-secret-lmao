@@ -75,4 +75,8 @@ Reusable (across APIs) dependencies are defined separately, whereas dependencies
 
 - Annotate field with types, i.e. comment on top of the property if something is repeated or a map or a nested child message.
 - Managing dependencies, i.e. restructuring the files and apis.
+- Create a custom list/map data containers for message types.
+- Write generic test script for the following:
+  - Reading from and writing to a file in both text and binary format.
+  - Test expected attribute input and output type for each wrapper.
 

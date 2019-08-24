@@ -6,11 +6,9 @@ def _unwrap_pb(obj):
         return obj._protobuf
     return obj
 
-
 def _wrap_pb(wp, pb):
     wp._protobuf.CopyFrom(pb)
     return wp
-
 
 class Message(object):
     def __init__(self, protobuf, **kwargs):
@@ -50,12 +48,10 @@ class Message(object):
             f.write(self._protobuf.SerializeToString())       
 
     def copy(self, obj):
-        obj = self.unwrap_pb(obj)
-        self._protobuf.CopyFrom(obj)
+        self._protobuf.CopyFrom(self.unwrap_pb(obj))
 
     def merge(self, obj):
-        obj = self.unwrap_pb(obj)
-        self._protobuf.MergeFrom(obj)
+        self._protobuf.MergeFrom(self.unwrap_pb(obj))
 
     @property
     def is_initialized(self):
@@ -75,7 +71,7 @@ class Message(object):
 
 
 class GRPCService(object):
-    def __init__(self, server):
+    def __init__(self, server, cred=None):
         self.channel = self.create_insecure_channel(server)
 
     def create_secure_channel(self):
@@ -90,10 +86,44 @@ class GRPCService(object):
 
     @staticmethod
     def wrap_pb(wp, pb):
-        return _wrap_pb(wp, obj)
+        return _wrap_pb(wp, pb)
 
 
 # TODO: A class for message map containers
-class MessageMap(object):
+class MessageMap(Message):
     def __init__(self, **kwargs):
         pass
+
+# A class for message list containers
+class MessageList(Message):
+    def __init__(self, protobuf, wrapper):
+        super().__init__(protobuf)
+        self._wrapper = wrapper
+
+    def __len__(self):
+        return len(self._protobuf)
+
+    def add(self):
+        raise NotImplementedError
+
+    def append(self, _item):
+        _item = self.unwrap_pb(_item)
+        self._protobuf.append(_item)
+
+    def extend(self, _list):
+        _list = [self.unwrap_pb(item) for item in _list]
+        self._protobuf.extend(_list)
+
+    def insert(self, index, _item):
+        _item = self.unwrap_pb(_item)
+        self._protobuf.insert(index, _item)
+
+    def pop(self, index=None):
+        index = index or - 1
+        return self.wrap_pb(self._wrapper, self._protobuf.pop(index))
+
+    def remove(self, value):
+        self._protobuf.remove(value)
+
+    def sort(self):
+        self._protobuf.sort()
