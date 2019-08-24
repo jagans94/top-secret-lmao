@@ -4,8 +4,11 @@ from tensorflow_serving.apis import get_model_metadata_pb2, model_pb2, predict_p
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 
 from base import Message, GRPCService
-from config import ModelConfig
+from config import ModelConfig, ModelConfigList
 from utils import _make_tensor_proto, _make_ndarray
+
+# file specific imports, like .h for c++ 
+from apis_dep import *
 
 class ModelSpec(Message):
     def __init__(self, name=None, version=None, version_label=None, signature_name=None):
@@ -167,6 +170,8 @@ class GetModelMetadataResponse(Message):
     def metadata(self, _dict):
         raise AttributeError("Attribute is read-only, can't be set.")
 
+    # TODO: Add a method to parse the metadata response
+
         
 class PredictionService(GRPCService):
     def __init__(self, server):
@@ -186,45 +191,87 @@ class PredictionService(GRPCService):
         return response
     
     
-
-class ReloadConfigRequest(_Message):
-    def __init__(self, config_list=None):
-        super().__init__(model_management_pb2.ReloadConfigRequest(), config_list)
+class ReloadConfigRequest(Message):
+    def __init__(self, model_config_list=None, custom_model_config=None):
+        super().__init__(model_management_pb2.ReloadConfigRequest(), 
+                         model_config_list=model_config_list,
+                         custom_model_config=custom_model_config)
     
-    def extend(self, *configs):
-        cfg_pbs = [c.protobuf for c in configs]
-        self.protobuf.model_config_list.extend(cfg_pbs)
+    @property
+    def model_config_list(self):
+        return self.wrap_pb(ModelConfigList(), self._protobuf.model_config_list)
 
-class ReloadConfigResponse(_Message):
+    @model_config_list.setter
+    def model_config_list(self, _model_config_list):
+        self._protobuf.model_config_list.CopyFrom(self.unwrap(_model_config_list))
+
+    @property
+    def custom_model_config(self):
+        return NotImplementedError
+
+    @custom_model_config.setter
+    def custom_model_config(self, value):
+        return NotImplementedError
+
+
+class ReloadConfigResponse(Message):
     def __init__(self, status=None):
-        super().__init__(model_management_pb2.ReloadConfigResponse(), status)
+        super().__init__(model_management_pb2.ReloadConfigResponse(), 
+                         status=status)
 
-    # add methods to process status
+    @property
+    def status(self):
+        return self._protobuf.status 
 
-class GetModelStatusRequest(_Message):
+    @status.setter
+    def status(self, value):
+        raise AttributeError("Attribute is read-only, can't be set.")
+
+    # TODO: Add method to process status if required; 
+    # if it's general enough create a class for status and add to it.
+
+
+class GetModelStatusRequest(Message):
     def __init__(self, model_spec=None):
-        super().__init__(get_model_status_pb2.GetModelStatusRequest(),model_spec)
+        super().__init__(get_model_status_pb2.GetModelStatusRequest(), 
+                         model_spec=model_spec)
     
-class GetModelStatusResponse(_Message):
+    @property
+    def model_spec(self):
+        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
+
+    @model_spec.setter
+    def model_spec(self, _model_spec):
+        self._protobuf.model_spec.CopyFrom(self.unwrap_pb(_model_spec))
+    
+class GetModelStatusResponse(Message):
     def __init__(self, model_version_status=None):
-        super().__init__(get_model_status_pb2.GetModelStatusResponse(), model_version_status)
+        super().__init__(get_model_status_pb2.GetModelStatusResponse(), 
+                         model_version_status=model_version_status)
 
-class ModelService(_GRPCService):
-    def __init__(self, server, timeout=5):
-        super().__init__(server, timeout)
+    @property
+    def model_version_status(self):
+        return self.wrap_pb(ModelVersionStatus(), self._protobuf._model_version_status)
+
+    @model_version_status.setter
+    def model_version_status(self, _model_version_status):
+        self._protobuf.model_version_status.CopyFrom(self.unwrap_pb(_model_version_status))
+
+
+class ModelService(GRPCService):
+    def __init__(self, server):
+        super().__init__(server)
         self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
-        self.response = None
 
-    def reload_config(self, request):
-        response = ReloadConfigResponse()
-        if not request.is_intialized(): # Test this by sending a non-initialized request
-            raise ValueError('The request needs to be initialized before sending.')
-        response.copy(self.stub.HandleReloadConfigRequest(request.protobuf, self.timeout))
+    def reload_config(self, request, timeout=5):
+        request = self.unwrap_pb(request)
+        response = self.wrap_pb(ReloadConfigResponse(),
+                                self.stub.HandleReloadConfigRequest(request, timeout))
         return response
 
-    def get_model_status(self, request):
-        response = GetModelStatusResponse()
-        if not request.is_intialized(): # Test this by sending a non-initialized request
-            raise ValueError('The request needs to be initialized before sending.')
-        response.copy(self.stub.GetModelStatus(request.protobuf, self.timeout))
+
+    def get_model_status(self, request, timeout=5):
+        request = self.unwrap_pb(request)
+        response = self.wrap_pb(GetModelStatusResponse(),
+                                self.stub.GetModelStatus(request, timeout))
         return response
