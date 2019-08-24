@@ -94,7 +94,7 @@ class MessageMap(Message):
     def __init__(self, **kwargs):
         pass
 
-# A class for message list containers
+# A container class for message list containers
 class MessageList(Message):
     def __init__(self, protobuf, wrapper):
         super().__init__(protobuf)
