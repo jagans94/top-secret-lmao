@@ -1,0 +1,21 @@
+
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢
+
+	new_mnist."none:¢

@@ -49,9 +49,11 @@ class Message(object):
 
     def copy(self, obj):
         self._protobuf.CopyFrom(self.unwrap_pb(obj))
+        return self
 
     def merge(self, obj):
         self._protobuf.MergeFrom(self.unwrap_pb(obj))
+        return self
 
     @property
     def is_initialized(self):
@@ -94,29 +96,36 @@ class MessageMap(Message):
     def __init__(self, **kwargs):
         pass
 
-# A container class for message list containers
+# A container class for a list of messages
 class MessageList(Message):
     def __init__(self, protobuf, wrapper):
         super().__init__(protobuf)
         self._wrapper = wrapper
 
     def __len__(self):
-        return len(self._protobuf)
+        return self._protobuf.__len__()
 
-    def add(self):
-        raise NotImplementedError
+    def __getitem__(self, key):
+        return self.wrap_pb(self._wrapper, self._protobuf.__getitem__(key))
 
-    def append(self, _item):
-        _item = self.unwrap_pb(_item)
-        self._protobuf.append(_item)
+    def __setitem__(self, key, value):
+        return self._protobuf.__setitem__(key, self.unwrap_pb(value))
+
+    def __delitem__(self, key):
+        return self._protobuf.__delitem__(key)
+
+    def __iter__(self):
+        return iter([self.wrap_pb(self._wrapper, item) for item in self._protobuf])
 
     def extend(self, _list):
+        # extend works like append for single non-list items
+        if not isinstance(_list, (tuple, list)):
+            _list = [_list]
         _list = [self.unwrap_pb(item) for item in _list]
         self._protobuf.extend(_list)
 
     def insert(self, index, _item):
-        _item = self.unwrap_pb(_item)
-        self._protobuf.insert(index, _item)
+        self._protobuf.insert(index, self.unwrap_pb(_item))
 
     def pop(self, index=None):
         index = index or - 1

@@ -67,16 +67,64 @@ Shouldn't be able to set values to response attributes; therefore initialisation
 
 Non-complicated message types that who values can be set and gotten easily remain non-modified and in general not implemented. 
 
-However, complicated ones are broken down to make easier python-ic interfaces.
+However, complicated ones are broken down to make easier pythonic interfaces.
 
 Reusable (across APIs) dependencies are defined separately, whereas dependencies specific to a single (or an already grouped set of APIs) are defined along with the corresponding APIs.
 
-### TODO:
+### Duck Typing
 
-- Annotate field with types, i.e. comment on top of the property if something is repeated or a map or a nested child message.
-- Managing dependencies, i.e. restructuring the files and apis.
-- Create a custom list/map data containers for message types.
-- Write generic test script for the following:
+Placeholder
+
+### Why?
+
+- Number of LOCs saved. <QUANTIFY>
+- Consolidated implementation.
+- Simpler interface, i.e. more pythonic.
+- No external dependencies <if `make_tensor_proto` and `make_ndarray` are implemented organically>
+
+## WRAPPER
+
+### TO DO:
+
+- [ ] Annotate message fields/attributes with types by commenting with appropriate type reference (as an alternative to static typing).
+- [ ] Managing dependencies, i.e. restructuring the files and APIs.
+- [ ] Create a custom list/map data containers for message types. 
+  - [x] List
+  - [ ] Map
+- [ ] Write generic test script for the following:
   - Reading from and writing to a file in both text and binary format.
   - Test expected attribute input and output type for each wrapper.
+- [ ] Check `id()` for every returned item/instance using `getattr`, i.e. to make sure the wrappers are not created newly each time. If so, implement a static attribute look-up to avoid unneeded wrapper generation.
+
+### Limitations:
+
+- Chained attribute access doesn't work, i.e.
+
+  ```python
+  model_spec = ModelSpec(name='mnist')
+  pred_req = PredictRequest(model_spec=model_spec)
+  pred_req.model_spec
+  # >>> name: "mnist"
+  pred_req.model_spec.name = '12'
+  pred_req.model_spec # i.e. the initial value doesn't change
+  # >>> name: "mnist" 
+  
+  # To overcome this, set the child attribute directly
+  pred_req.model_spec = ModelSpec(name='12')
+  pred_req.model_spec
+  # >>> name: "12" 
+  ```
+
+- Custom container implementation i.e. MessageList, MessageMap support most of the methods expected of the class (as suggested by the name). However, certain methods such as splicing and probably many more i.e. <INSERT METHODS HERE> are not supported, but can be implemented as required.
+
+## gRPC
+
+### TO DO:
+
+- [ ] Concurrent Asynchronous Requests
+
+- [ ] Write a mock server, for downloading model to a specified folder based around on `ReloadConfigRequest`.
+- [ ] Authentication <OUT OF SCOPE>
+
+
 

@@ -52,7 +52,7 @@ class ModelConfig(Message):
     def model_version_policy(self, _model_version_policy):
         self._protobuf.model_version_policy.CopyFrom(self.unwrap_pb(_model_version_policy))
 
-    # type: map
+    # type: (map) string
     @property
     def version_labels(self):
         return self._protobuf.version_labels
@@ -76,15 +76,19 @@ class ModelConfigList(Message):
     def __init__(self, config=None):
         super().__init__(model_server_config_pb2.ModelConfigList(),
                         config=config)
-    
+
     # type: (repeated) message
     @property
     def config(self):
-        return MessageList(self._protobuf.config, ModelConfig())
+        if not hasattr(self, '_message_list'):
+            self._message_list = MessageList(self._protobuf.config, ModelConfig())
+        return self._message_list
         
     @config.setter
     def config(self, _list):
-        if not isinstance(_list, (list, tuple)):
+        if isinstance(_list, MessageList):
+            _list = list(_list)
+        elif not isinstance(_list, (list, tuple)):
             _list = [_list]
         _list = [self.unwrap_pb(cfg) for cfg in _list]
         self._protobuf.ClearField('config')

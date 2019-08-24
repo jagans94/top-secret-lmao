@@ -18,6 +18,7 @@ class ModelSpec(Message):
                          version_label=version_label,
                          signature_name=signature_name)
     
+    # type: string
     @property
     def name(self):
         return self._protobuf.name
@@ -26,6 +27,7 @@ class ModelSpec(Message):
     def name(self, _name):
         self._protobuf.name = _name
 
+    # type: (Int64Wrapper) internal wrapper
     @property
     def version(self):
         return self._protobuf.version.value
@@ -34,6 +36,7 @@ class ModelSpec(Message):
     def version(self, _version):
         self._protobuf.version.value = _version
 
+    # type: string
     @property
     def version_label(self):
         return self._protobuf.version_label
@@ -42,6 +45,7 @@ class ModelSpec(Message):
     def version_label(self, _version_label):
         self._protobuf.version_label = _version_label
 
+    # type: string
     @property
     def signature_name(self):
         return self._protobuf.signature_name
@@ -57,9 +61,13 @@ class PredictRequest(Message):
                          inputs=inputs,
                          output_filter=output_filter)
 
+    # type: message
     @property
     def model_spec(self):
-        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
+        if not hasattr(self, '_model_spec'):
+            self._model_spec = ModelSpec()
+        print(id(self._model_spec))
+        return self._model_spec.copy(self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
@@ -74,6 +82,7 @@ class PredictRequest(Message):
         for key, values in _dict.items():
             self._protobuf.inputs[key].CopyFrom(_make_tensor_proto(values))
 
+    # type: (repeated) string
     @property
     def output_filter(self):
         return self._protobuf.output_filter
@@ -131,19 +140,24 @@ class GetModelMetadataRequest(Message):
     @model_spec.setter
     def model_spec(self, _model_spec):
         self._protobuf.model_spec.CopyFrom(self.unwrap_pb(_model_spec))
-
+    
+    # type: (repeated) string
     @property
     def metadata_field(self):
         return self._protobuf.metadata_field
 
     @metadata_field.setter
     def metadata_field(self, _list):
-        if isinstance(_list, (tuple, list)) and len(_list) != 1 or \
-            _list[0] not in  GetModelMetadataRequest._supported_metadatafields:
-            raise AttributeError('Currently, the `metadata_field` \
-                only accepts `signature_def`.')
         if not isinstance(_list, (list, tuple)):
             _list = [_list]
+        if isinstance(_list, (tuple, list)):
+            if len(_list) != 1: 
+                raise AttributeError("Currently, the `metadata_field` only accepts a single value.")
+            elif _list[0] not in  GetModelMetadataRequest._supported_metadatafields:
+                raise ValueError(\
+                    '{} not among supported values: {}`.'.format(_list[0],
+                    GetModelMetadataRequest._supported_metadatafields))
+
         self._protobuf.ClearField('metadata_field')
         self._protobuf.metadata_field.extend(_list)
 

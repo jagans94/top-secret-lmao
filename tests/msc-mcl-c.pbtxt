@@ -1,0 +1,100 @@
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
+config {
+  name: "new_mnist"
+  base_path: "."
+  model_platform: "none"
+  model_version_policy {
+    latest {
+      num_versions: 2
+    }
+  }
+}
