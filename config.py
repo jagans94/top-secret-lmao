@@ -7,14 +7,15 @@ from sources import ServableVersionPolicy
 
 class ModelConfig(Message):
     def __init__(self, name=None, base_path=None, model_platform=None,
-                 model_version_policy=None, version_labels=None, logging_config=None):
+                 model_version_policy=None, version_labels=None, logging_config=None, **kwargs):
         super().__init__(model_server_config_pb2.ModelConfig(),
                         name=name,
                         base_path=base_path, 
                         model_platform=model_platform,
                         model_version_policy=model_version_policy,
                         version_labels=version_labels,
-                        logging_config=logging_config)
+                        logging_config=logging_config,
+                        **kwargs)
 
     # type: string
     @property
@@ -24,6 +25,7 @@ class ModelConfig(Message):
     @name.setter
     def name(self, _name):
         self._protobuf.name = _name
+        self.__set_in_parent__()
 
     # type: string
     @property
@@ -33,6 +35,7 @@ class ModelConfig(Message):
     @base_path.setter
     def base_path(self, _base_path):
         self._protobuf.base_path = _base_path
+        self.__set_in_parent__()
 
     # type: string
     @property
@@ -42,17 +45,21 @@ class ModelConfig(Message):
     @model_platform.setter
     def model_platform(self, _model_platform):
         self._protobuf.model_platform = _model_platform
+        self.__set_in_parent__()
 
     # type: message
     @property
     def model_version_policy(self):
-        return self.wrap_pb(ServableVersionPolicy(), self._protobuf.model_version_policy)
+        if not hasattr(self, '_model_version_policy'):
+            self._model_version_policy = ServableVersionPolicy(container=self, descriptor='model_version_policy')
+        return self._model_version_policy.copy(self._protobuf.model_version_policy)
         
     @model_version_policy.setter
     def model_version_policy(self, _model_version_policy):
         self._protobuf.model_version_policy.CopyFrom(self.unwrap_pb(_model_version_policy))
+        self.__set_in_parent__()
 
-    # type: (map) string
+    # type: (map) int : string
     @property
     def version_labels(self):
         return self._protobuf.version_labels
@@ -61,11 +68,16 @@ class ModelConfig(Message):
     def version_labels(self, _dict):
         for key, value in _dict.items():
             self._protobuf.version_labels[key] = value
+        self.__set_in_parent__()
 
     # type: message
     @property
     def logging_config(self):
         raise AttributeError('`logging_config` is not supported as of now.')
+        # TODO: Complete
+        # if not hasattr(self, '_logging_config'):
+        #     self._logging_config = LoggingConfig(container=self, descriptor='logging_config')
+        # return self._logging_config.copy(self._protobuf.logging_config)
 
     @logging_config.setter
     def logging_config(self, value):
@@ -73,16 +85,20 @@ class ModelConfig(Message):
 
 
 class ModelConfigList(Message):
-    def __init__(self, config=None):
+    def __init__(self, config=None, **kwargs):
         super().__init__(model_server_config_pb2.ModelConfigList(),
-                        config=config)
+                        config=config,
+                        **kwargs)
 
     # type: (repeated) message
     @property
     def config(self):
-        if not hasattr(self, '_message_list'):
-            self._message_list = MessageList(self._protobuf.config, ModelConfig())
-        return self._message_list
+        if not hasattr(self, '_config'):
+            self._config = MessageList(self._protobuf.config,
+                                       ModelConfig(),
+                                       container=self,
+                                       descriptor='config')
+        return self._config.copy(self._protobuf.config)
         
     @config.setter
     def config(self, _list):
@@ -93,6 +109,7 @@ class ModelConfigList(Message):
         _list = [self.unwrap_pb(cfg) for cfg in _list]
         self._protobuf.ClearField('config')
         self._protobuf.config.extend(_list)
+        self.__set_in_parent__()
 
 
 class ModelServerConfig(Message):
@@ -104,11 +121,14 @@ class ModelServerConfig(Message):
     # type: (oneof) message
     @property
     def model_config_list(self):
-        return self.wrap_pb(ModelConfigList(), self._protobuf.model_config_list)
+        if not hasattr(self, '_model_config_list'):
+            self._model_config_list = ModelConfigList(container=self, descriptor='model_config_list')
+        return self._model_config_list.copy(self._protobuf.model_config_list)
     
     @model_config_list.setter
     def model_config_list(self, _model_config_list):
         self._protobuf.model_config_list.CopyFrom(self.unwrap_pb(_model_config_list))
+        self.__set_in_parent__()
 
     # type: (oneof) message
     @property

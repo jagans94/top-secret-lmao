@@ -13,6 +13,8 @@ def _wrap_pb(wp, pb):
 class Message(object):
     def __init__(self, protobuf, **kwargs):
         self._protobuf = protobuf
+        self._container = kwargs.pop('container', None)
+        self._descriptor = kwargs.pop('descriptor', None)
         self.update(**kwargs)
     
     def update(self, **kwargs):
@@ -24,6 +26,10 @@ class Message(object):
             if val is not None:
                 # use the class attribute setter method
                 setattr(self, attr, val)
+
+    def __set_in_parent__(self):
+        if self._container:
+            setattr(self._container, self._descriptor, self)
 
     def __str__(self):
         return str(self._protobuf)
@@ -73,10 +79,10 @@ class Message(object):
 
 
 class GRPCService(object):
-    def __init__(self, server, cred=None):
+    def __init__(self, server, **kwargs):
         self.channel = self.create_insecure_channel(server)
 
-    def create_secure_channel(self):
+    def create_secure_channel(self, server, cred):
         raise NotImplementedError
 
     def create_insecure_channel(self, server):
@@ -98,9 +104,9 @@ class MessageMap(Message):
 
 # A container class for a list of messages
 class MessageList(Message):
-    def __init__(self, protobuf, wrapper):
-        super().__init__(protobuf)
-        self._wrapper = wrapper
+    def __init__(self, protobuf, wrapper, **kwargs):
+        super().__init__(protobuf, **kwargs)
+        self._wrapper_list = wrapper
 
     def __len__(self):
         return self._protobuf.__len__()
@@ -109,7 +115,8 @@ class MessageList(Message):
         return self.wrap_pb(self._wrapper, self._protobuf.__getitem__(key))
 
     def __setitem__(self, key, value):
-        return self._protobuf.__setitem__(key, self.unwrap_pb(value))
+        self._protobuf.__setitem__(key, self.unwrap_pb(value))
+        self.__set_in_parent__()
 
     def __delitem__(self, key):
         return self._protobuf.__delitem__(key)
@@ -128,7 +135,7 @@ class MessageList(Message):
         self._protobuf.insert(index, self.unwrap_pb(_item))
 
     def pop(self, index=None):
-        index = index or - 1
+        index = index or -1
         return self.wrap_pb(self._wrapper, self._protobuf.pop(index))
 
     def remove(self, value):

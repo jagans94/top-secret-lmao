@@ -1,22 +1,26 @@
 import grpc
 
-from tensorflow_serving.apis import get_model_metadata_pb2, model_pb2, predict_pb2
+from tensorflow_serving.apis import get_model_metadata_pb2, model_pb2
+from tensorflow_serving.apis import get_model_status_pb2
+from tensorflow_serving.apis import predict_pb2
+
 from tensorflow_serving.apis import prediction_service_pb2_grpc
+from tensorflow_serving.apis import model_service_pb2_grpc
 
 from base import Message, GRPCService
 from config import ModelConfig, ModelConfigList
-from utils import _make_tensor_proto, _make_ndarray
+from tfs_utils import _make_tensor_proto, _make_ndarray
 
-# file specific imports, like .h for c++ 
-from apis_dep import *
 
 class ModelSpec(Message):
-    def __init__(self, name=None, version=None, version_label=None, signature_name=None):
+    def __init__(self, name=None, version=None, version_label=None,
+                    signature_name=None, **kwargs):
         super().__init__(model_pb2.ModelSpec(),
                          name=name,
                          version=version,
                          version_label=version_label,
-                         signature_name=signature_name)
+                         signature_name=signature_name,
+                         **kwargs)
     
     # type: string
     @property
@@ -26,6 +30,7 @@ class ModelSpec(Message):
     @name.setter
     def name(self, _name):
         self._protobuf.name = _name
+        self.__set_in_parent__()
 
     # type: (Int64Wrapper) internal wrapper
     @property
@@ -35,6 +40,7 @@ class ModelSpec(Message):
     @version.setter
     def version(self, _version):
         self._protobuf.version.value = _version
+        self.__set_in_parent__()
 
     # type: string
     @property
@@ -44,6 +50,7 @@ class ModelSpec(Message):
     @version_label.setter
     def version_label(self, _version_label):
         self._protobuf.version_label = _version_label
+        self.__set_in_parent__()
 
     # type: string
     @property
@@ -52,27 +59,71 @@ class ModelSpec(Message):
         
     @signature_name.setter
     def signature_name(self, _signature_name):
-        self._protobuf.signature_name = _signature_name 
+        self._protobuf.signature_name = _signature_name
+        self.__set_in_parent__()
+
+
+class ModelVersionStatus(Message):
+    def __init__(self, version=None, state=None, Status=None, **kwargs):
+        super().__init__(get_model_status_pb2.ModelVersionStatus(),
+                         version=version,
+                         state=state,
+                         status=status,
+                         **kwargs)
+    
+    # type: int
+    @property
+    def version(self):
+        return self._protobuf.version
+        
+    @version.setter
+    def version(self, _version):
+        self._protobuf.version = _version
+        self.__set_in_parent__()
+
+    # type: enum
+    @property
+    def state(self):
+        return self._protobuf.state
+        
+    @state.setter
+    def state(self, _state):
+        self._protobuf.state = _state
+        self.__set_in_parent__()
+
+    # type: message
+    @property
+    def status(self):
+        return self._protobuf.status
+        
+    @status.setter
+    def status(self, _status):
+        self._protobuf.status.CopyFrom(_status)
+        self.__set_in_parent__()
+
+
 
 class PredictRequest(Message):
-    def __init__(self, model_spec=None, inputs=None, output_filter=None):
+    def __init__(self, model_spec=None, inputs=None, output_filter=None, **kwargs):
         super().__init__(predict_pb2.PredictRequest(),
                          model_spec=model_spec,
                          inputs=inputs,
-                         output_filter=output_filter)
+                         output_filter=output_filter,
+                         **kwargs)
 
     # type: message
     @property
     def model_spec(self):
         if not hasattr(self, '_model_spec'):
-            self._model_spec = ModelSpec()
-        print(id(self._model_spec))
+            self._model_spec = ModelSpec(container=self, descriptor='model_spec')
         return self._model_spec.copy(self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
         self._protobuf.model_spec.CopyFrom(self.unwrap_pb(_model_spec))
+        self.__set_in_parent__()
 
+    # type: (map) string : tensor_proto
     @property
     def inputs(self):
         return self._protobuf.inputs
@@ -81,6 +132,7 @@ class PredictRequest(Message):
     def inputs(self, _dict):
         for key, values in _dict.items():
             self._protobuf.inputs[key].CopyFrom(_make_tensor_proto(values))
+        self.__set_in_parent__()
 
     # type: (repeated) string
     @property
@@ -93,22 +145,28 @@ class PredictRequest(Message):
             _list = [_list]
         self._protobuf.ClearField('output_filter')
         self._protobuf.output_filter.extend(_list)
+        self.__set_in_parent__()
 
 
 class PredictResponse(Message):
-    def __init__(self, model_spec=None, outputs=None):
+    def __init__(self, model_spec=None, outputs=None, **kwargs):
         super().__init__(predict_pb2.PredictResponse(),
                          model_spec=model_spec,
-                         outputs=outputs)
-        
+                         outputs=outputs,
+                         **kwargs)
+    
+    # type: message
     @property
     def model_spec(self):
-        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
+        if not hasattr(self, '_model_spec'):
+            self._model_spec = ModelSpec(container=self, descriptor='model_spec')
+        return self._model_spec.copy(self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
         raise AttributeError("Attribute is read-only, can't be set.")
 
+    # type: (map) string : tensor_proto
     @property
     def outputs(self):
         return self._protobuf.outputs
@@ -128,18 +186,23 @@ class GetModelMetadataRequest(Message):
     
     _supported_metadatafields = frozenset('signature_def')
 
-    def __init__(self, model_spec=None, metadata_field=None):
+    def __init__(self, model_spec=None, metadata_field=None, **kwargs):
         super().__init__(get_model_metadata_pb2.GetModelMetadataRequest(),
                          model_spec=model_spec,
-                         metadata_field=metadata_field)
+                         metadata_field=metadata_field,
+                         **kwargs)
         
+    # type: message
     @property
     def model_spec(self):
-        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
+        if not hasattr(self, '_model_spec'):
+            self._model_spec = ModelSpec(container=self, descriptor='model_spec')
+        return self._model_spec.copy(self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
         self._protobuf.model_spec.CopyFrom(self.unwrap_pb(_model_spec))
+        self.__set_in_parent__()
     
     # type: (repeated) string
     @property
@@ -160,22 +223,28 @@ class GetModelMetadataRequest(Message):
 
         self._protobuf.ClearField('metadata_field')
         self._protobuf.metadata_field.extend(_list)
+        self.__set_in_parent__()
 
         
 class GetModelMetadataResponse(Message):
-    def __init__(self, model_spec=None, metadata=None):
+    def __init__(self, model_spec=None, metadata=None, **kwargs):
         super().__init__(get_model_metadata_pb2.GetModelMetadataResponse(),
                          model_spec=model_spec,
-                         metadata=metadata)
+                         metadata=metadata,
+                         **kwargs)
         
+    # type: message
     @property
     def model_spec(self):
-        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
+        if not hasattr(self, '_model_spec'):
+            self._model_spec = ModelSpec(container=self, descriptor='model_spec')
+        return self._model_spec.copy(self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
         raise AttributeError("Attribute is read-only, can't be set.")
 
+    # type: (map) string : any_proto
     @property
     def metadata(self):
         return self._protobuf.metadata
@@ -206,50 +275,36 @@ class PredictionService(GRPCService):
     
     
 class ReloadConfigRequest(Message):
-    def __init__(self, config=None):
+    def __init__(self, config=None, **kwargs):
         super().__init__(model_management_pb2.ReloadConfigRequest(), 
-                         config=model_config_list)
+                         config=model_config_list,
+                         **kwargs)
     
+    # type: message
     @property
     def config(self):
-        return self.wrap_pb(ModelServerConfig(), self._protobuf.config)
+        if not hasattr(self, '_config'):
+            self._config = ModelServerConfig(container=self, descriptor='config')
+        return self._config.copy(self._protobuf.config)
 
     @config.setter
     def config(self, _config):
         self._protobuf.config.CopyFrom(self.unwrap(_config))
-
-
-class ModelServerConfig(Message):
-    def __init__(self, model_config_list=None, custom_model_config=None):
-        super().__init__(model_management_pb2.ReloadConfigRequest(), 
-                         model_config_list=model_config_list,
-                         custom_model_config=custom_model_config)
-    
-    @property
-    def model_config_list(self):
-        return self.wrap_pb(ModelConfigList(), self._protobuf.model_config_list)
-
-    @model_config_list.setter
-    def model_config_list(self, _model_config_list):
-        self._protobuf.model_config_list.CopyFrom(self.unwrap(_model_config_list))
-
-    @property
-    def custom_model_config(self):
-        return NotImplementedError
-
-    @custom_model_config.setter
-    def custom_model_config(self, value):
-        return NotImplementedError
+        self.__set_in_parent__()
 
 
 class ReloadConfigResponse(Message):
-    def __init__(self, status=None):
+    def __init__(self, status=None, **kwargs):
         super().__init__(model_management_pb2.ReloadConfigResponse(), 
-                         status=status)
+                         status=status,
+                         **kwargs)
 
+    # type: message
     @property
     def status(self):
-        return self._protobuf.status 
+        if not hasattr(self, '_status'):
+            self._status = Status(container=self, descriptor='status')
+        return self._status.copy(self._protobuf.status)
 
     @status.setter
     def status(self, value):
@@ -264,26 +319,34 @@ class GetModelStatusRequest(Message):
         super().__init__(get_model_status_pb2.GetModelStatusRequest(), 
                          model_spec=model_spec)
     
+    # type: message
     @property
     def model_spec(self):
-        return self.wrap_pb(ModelSpec(), self._protobuf.model_spec)
+        if not hasattr(self, '_model_spec'):
+            self._model_spec = ModelSpec(container=self, descriptor='model_spec')
+        return self._model_spec.copy(self._protobuf.model_spec)
 
     @model_spec.setter
     def model_spec(self, _model_spec):
         self._protobuf.model_spec.CopyFrom(self.unwrap_pb(_model_spec))
+        self.__set_in_parent__()
     
 class GetModelStatusResponse(Message):
     def __init__(self, model_version_status=None):
         super().__init__(get_model_status_pb2.GetModelStatusResponse(), 
                          model_version_status=model_version_status)
 
+    # type: message
     @property
     def model_version_status(self):
-        return self.wrap_pb(ModelVersionStatus(), self._protobuf._model_version_status)
+        if not hasattr(self, '_model_version_status'):
+            self._model_version_status = ModelVersionStatus(container=self, descriptor='model_version_status')
+        return self._model_version_status.copy(self._protobuf.model_version_status)
 
     @model_version_status.setter
     def model_version_status(self, _model_version_status):
         self._protobuf.model_version_status.CopyFrom(self.unwrap_pb(_model_version_status))
+        self.__set_in_parent__()
 
 
 class ModelService(GRPCService):
