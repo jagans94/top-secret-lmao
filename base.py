@@ -106,7 +106,7 @@ class MessageMap(Message):
 class MessageList(Message):
     def __init__(self, protobuf, wrapper, **kwargs):
         super().__init__(protobuf, **kwargs)
-        self._wrapper_list = wrapper
+        self._wrapper = wrapper
 
     def __len__(self):
         return self._protobuf.__len__()
