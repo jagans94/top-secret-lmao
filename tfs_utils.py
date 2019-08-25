@@ -1,6 +1,5 @@
 from tensorflow.contrib.util import make_tensor_proto, make_ndarray
 
-from base import Message
 
 def _make_tensor_proto(values, dtype=None, shape=None, verify_shape=False, allow_broadcast=False):
     '''

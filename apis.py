@@ -9,6 +9,7 @@ from tensorflow_serving.apis import model_service_pb2_grpc
 
 from base import Message, GRPCService
 from config import ModelConfig, ModelConfigList
+from util import Status
 from tfs_utils import _make_tensor_proto, _make_ndarray
 
 
@@ -32,7 +33,7 @@ class ModelSpec(Message):
         self._protobuf.name = _name
         self.__set_in_parent__()
 
-    # type: (Int64Wrapper) internal wrapper
+    # type: (Int64Wrapper) message
     @property
     def version(self):
         return self._protobuf.version.value
@@ -64,7 +65,7 @@ class ModelSpec(Message):
 
 
 class ModelVersionStatus(Message):
-    def __init__(self, version=None, state=None, Status=None, **kwargs):
+    def __init__(self, version=None, state=None, status=None, **kwargs):
         super().__init__(get_model_status_pb2.ModelVersionStatus(),
                          version=version,
                          state=state,
@@ -94,13 +95,14 @@ class ModelVersionStatus(Message):
     # type: message
     @property
     def status(self):
-        return self._protobuf.status
+        if not hasattr(self, , _status):
+            self._status = Status(container=self, descriptor='status')
+        return self._status.copy(self._protobuf.status)
         
     @status.setter
     def status(self, _status):
-        self._protobuf.status.CopyFrom(_status)
+        self._protobuf.status.CopyFrom(self.unwrap_pb(_status))
         self.__set_in_parent__()
-
 
 
 class PredictRequest(Message):
@@ -277,7 +279,7 @@ class PredictionService(GRPCService):
 class ReloadConfigRequest(Message):
     def __init__(self, config=None, **kwargs):
         super().__init__(model_management_pb2.ReloadConfigRequest(), 
-                         config=model_config_list,
+                         config=config,
                          **kwargs)
     
     # type: message
@@ -289,7 +291,7 @@ class ReloadConfigRequest(Message):
 
     @config.setter
     def config(self, _config):
-        self._protobuf.config.CopyFrom(self.unwrap(_config))
+        self._protobuf.config.CopyFrom(self.unwrap_pb(_config))
         self.__set_in_parent__()
 
 

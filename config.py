@@ -71,13 +71,10 @@ class ModelConfig(Message):
         self.__set_in_parent__()
 
     # type: message
+    # TODO: Complete
     @property
     def logging_config(self):
         raise AttributeError('`logging_config` is not supported as of now.')
-        # TODO: Complete
-        # if not hasattr(self, '_logging_config'):
-        #     self._logging_config = LoggingConfig(container=self, descriptor='logging_config')
-        # return self._logging_config.copy(self._protobuf.logging_config)
 
     @logging_config.setter
     def logging_config(self, value):
