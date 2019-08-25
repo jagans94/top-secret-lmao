@@ -1,8 +1,7 @@
 import grpc
-
-from tensorflow_serving.apis import get_model_metadata_pb2, model_pb2
-from tensorflow_serving.apis import get_model_status_pb2
-from tensorflow_serving.apis import predict_pb2
+from tensorflow_serving.apis import model_pb2
+from tensorflow_serving.apis import get_model_metadata_pb2, predict_pb2
+from tensorflow_serving.apis import get_model_status_pb2, model_management_pb2
 
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from tensorflow_serving.apis import model_service_pb2_grpc
@@ -95,7 +94,7 @@ class ModelVersionStatus(Message):
     # type: message
     @property
     def status(self):
-        if not hasattr(self, , _status):
+        if not hasattr(self, '_status'):
             self._status = Status(container=self, descriptor='status')
         return self._status.copy(self._protobuf.status)
         
@@ -186,7 +185,7 @@ class PredictResponse(Message):
     
 class GetModelMetadataRequest(Message):
     
-    _supported_metadatafields = frozenset('signature_def')
+    _supported_metadatafields = frozenset(['signature_def'])
 
     def __init__(self, model_spec=None, metadata_field=None, **kwargs):
         super().__init__(get_model_metadata_pb2.GetModelMetadataRequest(),

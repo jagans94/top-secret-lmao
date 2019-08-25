@@ -26,4 +26,4 @@ class Status(Message):
     def error_message(self, _error_message):
         self._protobuf.error_message = _error_message
 
-    # TODO: Add method to parse status if required.
+    # TODO: Add method to parse `error_code`.
