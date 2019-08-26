@@ -1,4 +1,6 @@
-### Required set of `.proto` files:
+# INFO:
+
+### Minimal set of required `.proto` files:
 
 - `serving_repo/tensorflow_serving/apis/*.proto`
 - `serving_repo/tensorflow_serving/config/model_server_config.proto`
@@ -17,21 +19,29 @@
 - `tensorflow_repo/tensorflow/core/protobuf/named_tensor.proto`
 - `tensorflow_repo/tensorflow/core/protobuf/config.proto`
 
-This is done to provide a sensible and easy-to-use abstraction layer around the compiled`protobuf`
+### TLDR: What's this?
 
-## Design Considerations
+The implementation has two main parts:
 
-### Exposing `protobuf`
+1. A wrapper around compiled `protobuf` objects/instances in the `tensorflow_serving` and `tensorflow` repositories required for performing client calls to a hosted`tensorflow_model_server`.
+2. A gRPC based client wrapper which interfaces with the wrapped `protobuf` instances to perform client calls.
 
-Each message in the `.proto` files inside `tensorflow_serving` or `tensorflow` library consists of multiple nested messages and complex singular as well as non-singular fields. Wrapping around each `protobuf` is good OO approach, which allows for increased customisation and control over `protobuf` objects. However, IMO only those APIs should be exposed to the user, which are required for constructing thevs sensible interface abstraction that can be justified, by  to open up. to decide the level of granularity to when dOne can define granularity
+## Why?
 
-How much to expose vs how much to hide behind programmatic construction?
+- Allow easy manipulation of `protobuf` instance with simple function calls.
+- Abstract away the necessity to know the internal`protobuf` implementation and replace them with simple (probably), well-defined interface. ;) [Refer Here]() <POINT TO APPROPRIATE RESOURCE>
+- <QUANTITY> number of LoCs saved. [Refer Here]() <POINT TO APPROPRIATE RESOURCE> <AN IMAGE MAYBE>
+- A consolidated, extensible gRPC-based client implementation for querying `tensorflow_model_server` or it's variant, i.e. mainly `PredictionService` and `ModelService` services.
+- A native, organic implementation, sidestepping heavy dependencies installation `tensorflow`  library. <UTILS NEEDS TO BE DIVORCED>
+- Simpler interface, i.e. more pythonic.
 
-- Auto magic vs Control
+### Design Considerations
 
-<More clarification required>
+### Compiled Python Code:  <WHY ARE YOU TELLING THIS>
 
-### Getting and Setting attributes
+Each message defined in the `.proto` files can (and some do) consist of multiple nested messages and  complex (i.e. read as repeated, map) scalar as well as non-scalar fields. The compiler doesn't generate your data access code for you directly. Instead, it generates special descriptors for all your messages, enums, and fields, and some mysteriously empty classes, one for each message type and uses uses [Python metaclass](https://docs.python.org/2.7/reference/datamodel.html#metaclasses) to do the real work. 
+
+### Getting and Setting attributes:
 
 Simplifying interface for setting some complex `attr`s that can't be set directly should be done by customising the derived class to manage around the said `attr`s. This makes sense, since each `protobuf` definition is different. This can be done by writing custom `getter` and `setter` methods for the necessary `protobuf` attributes.
 
@@ -75,26 +85,25 @@ Reusable (across APIs) dependencies are defined separately, whereas dependencies
 
 Placeholder
 
+### Mirroring:
+
+Check `id()` for every returned item/instance using `getattr`, i.e. to make sure the wrappers are not created newly each time. If so, implement a static attribute look-up to avoid unneeded wrapper generation.
+
 ### Why?
 
-- Number of LOCs saved. <QUANTIFY>
-- Consolidated implementation.
-- Simpler interface, i.e. more pythonic.
-- No external dependencies <if `make_tensor_proto` and `make_ndarray` are implemented organically>
+- 
 
 ## WRAPPER
 
 ### TO DO:
 
-- [ ] Annotate message fields/attributes with types by commenting with appropriate type reference (as an alternative to static typing).
-- [ ] Managing dependencies, i.e. restructuring the files and APIs.
+- [x] Annotate message fields/attributes with types by commenting with appropriate type reference (as an alternative to static typing).
+- [x] Managing dependencies, i.e. restructuring the files and APIs.
 - [ ] Create a custom list/map data containers for message types. 
   - [x] List
   - [ ] Map
 - [ ] Write generic test script for the following:
-  - Reading from and writing to a file in both text and binary format.
-  - Test expected attribute input and output type for each wrapper.
-- [ ] Check `id()` for every returned item/instance using `getattr`, i.e. to make sure the wrappers are not created newly each time. If so, implement a static attribute look-up to avoid unneeded wrapper generation.
+  - Write down expected behaviours for each wrapper class and write a test function covering general aspects.
 
 ### Limitations:
 
@@ -115,7 +124,7 @@ Placeholder
   # >>> name: "12" 
   ```
 
-- Custom container implementation i.e. MessageList, MessageMap support most of the methods expected of the class (as suggested by the name). However, certain methods such as splicing and probably many more i.e. <INSERT METHODS HERE> are not supported, but can be implemented as required.
+- Custom container implementation i.e. MessageList support most of the methods expected of the class (as suggested by the name). However, certain methods such as splicing and probably many more i.e. <INSERT METHODS HERE> are not supported, but can be implemented as required.
 
 ## gRPC
 
