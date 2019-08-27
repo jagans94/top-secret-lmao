@@ -262,10 +262,21 @@ class PredictionService(GRPCService):
         super().__init__(server)
         self.stub = prediction_service_pb2_grpc.PredictionServiceStub(self.channel)
 
-    def predict(self, request, timeout=5):
+    def predict(self, request, timeout=5, blocking=False, callback=None):
         request = self.unwrap_pb(request)
-        response = self.wrap_pb(PredictResponse(),
-                                self.stub.Predict(request, timeout))
+        try:
+            if blocking:
+                reponse = self.stub.Predict(request, timeout)
+            else:
+                response = self.handle_async(self.stub.Predict, callback, 
+                                             request=request, timeout=timeout)
+
+            response = PredictResponse().copy(response)
+        except grpc.RpcError as e:
+            # do something more with the error here
+            print("GRPC Error: " + e.details())
+            exit(-1)
+            
         return response
 
     def get_model_metadata(self, request, timeout=5):

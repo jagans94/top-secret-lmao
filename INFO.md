@@ -26,6 +26,54 @@ The implementation has two main parts:
 1. A wrapper around compiled `protobuf` objects/instances in the `tensorflow_serving` and `tensorflow` repositories required for performing client calls to a hosted`tensorflow_model_server`.
 2. A gRPC based client wrapper which interfaces with the wrapped `protobuf` instances to perform client calls.
 
+# Motivation:
+
+**TLDR:** If it ain't broke, don't fix it. So I improved it. (*subjective*) ;) 
+
+-  Working with `protobuf` should be simple, i.e. the message objects should work like any other python objects. They don't! 
+- Tensorflow Serving documentation doesn't cover client API in gRPC, and there is little available, mostly sparse, reference for implementing the gRPC clients. The [link](https://www.tensorflow.org/tfx/serving/api_rest) to gRPC client API is `grpc_tools` compiled code, which is to say not much actually :(
+
+# Why?
+
+I ask myself this now and then, so once for all, I'm putting it **down** in *mark____*.  ;P
+
+The repo started as a by-product of working with [Tensorflow Serving](https://www.tensorflow.org/tfx/guide/serving), mostly focusing on implementing a distributed serving mechanism for all models `tensorflow` and otherwise.
+
+I just wanted a simple, consolidated (even if not complete ;) ) gRPC-based client library (which ended up taking me down this rabbit hole) as well as testing whether gRPC is superior to REST for querying the hosted models and if so leverage it. 
+
+Now, I know! <BENCHMARKED RESULTS HERE>
+
+# Idea
+
+**The idea:** Don't replace the internal mechanism, but augment it. 
+
+The wrapper around `protobuf` messages aims to provide a flexible pythonic interface while also preserving the flexibility that comes in-built with it as part of  `google.protobuf`  library as well as provide an easier way of interfacing with some functionalities that's always used. <EDIT LATER>
+
+It does this in the following way:
+
+1. Exposes general `protobuf` functionalities to allow manipulation of internal attributes in an easy format <REWRITE WHAT THIS MEANS>
+2. Complex fields/attributes in `protobuf` cannot be assigned to directly using `setattr` or `=` sign. To overcome this, the library provides custom `getter` and `setter` methods that allow such direct manipulation.
+3. Issue with nested message fields: What do I return if the attribute of a `protobuf` message is another message? Well, to retain consistency across the API. 
+
+# FAQs
+
+Q: Hey, there's a lot of replicated logic here? Have you tried defining custom [descriptors](https://docs.python.org/3/howto/descriptor.html)?
+
+A: I know. Want to PR? :)
+
+# Future
+
+- [ ] Service reflection
+- [ ] Bench-marking vs REST API endpoints
+- [ ] 
+
+
+
+# Future (General)
+
+- [ ] Add some insane stuff here. 
+- [ ] 
+
 ## Why?
 
 - Allow easy manipulation of `protobuf` instance with simple function calls.

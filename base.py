@@ -88,6 +88,10 @@ class GRPCService(object):
     def create_insecure_channel(self, server):
         return grpc.insecure_channel(server)
 
+    def handle_async(self, rpc_method, callback, **rpc_kwargs):
+        future = rpc_method.future(**rpc_kwargs)
+        future.add_done_callback(callback)
+
     @staticmethod
     def unwrap_pb(obj):
         return _unwrap_pb(obj)
