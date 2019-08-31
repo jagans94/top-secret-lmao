@@ -262,30 +262,15 @@ class PredictionService(GRPCService):
         super().__init__(server)
         self.stub = prediction_service_pb2_grpc.PredictionServiceStub(self.channel)
 
-    def predict(self, request, timeout=5, blocking=False, callback=None):
-        request = self.unwrap_pb(request)
-        try:
-            if blocking:
-                reponse = self.stub.Predict(request, timeout)
-            else:
-                response = self.handle_async(self.stub.Predict, callback, 
-                                             request=request, timeout=timeout)
+    @property
+    def predict(self):
+        return self.stub.Predict
+        
+    @property
+    def get_model_metadata(self):
+        return self.stub.GetModelMetadata
 
-            response = PredictResponse().copy(response)
-        except grpc.RpcError as e:
-            # do something more with the error here
-            print("GRPC Error: " + e.details())
-            exit(-1)
-            
-        return response
 
-    def get_model_metadata(self, request, timeout=5):
-        request = self.unwrap_pb(request)
-        response = self.wrap_pb(GetModelMetadataResponse(),
-                                self.stub.GetModelMetadata(request, timeout))
-        return response
-    
-    
 class ReloadConfigRequest(Message):
     def __init__(self, config=None, **kwargs):
         super().__init__(model_management_pb2.ReloadConfigRequest(), 
@@ -360,21 +345,15 @@ class GetModelStatusResponse(Message):
         self._protobuf.model_version_status.CopyFrom(self.unwrap_pb(_model_version_status))
         self.__set_in_parent__()
 
-
 class ModelService(GRPCService):
     def __init__(self, server):
         super().__init__(server)
         self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
 
-    def reload_config(self, request, timeout=5):
-        request = self.unwrap_pb(request)
-        response = self.wrap_pb(ReloadConfigResponse(),
-                                self.stub.HandleReloadConfigRequest(request, timeout))
-        return response
-
-
-    def get_model_status(self, request, timeout=5):
-        request = self.unwrap_pb(request)
-        response = self.wrap_pb(GetModelStatusResponse(),
-                                self.stub.GetModelStatus(request, timeout))
-        return response
+    @property
+    def reload_config(self):
+        return self.stub.HandleReloadConfigRequest
+        
+    @property
+    def get_model_status(self):
+        return self.stub.GetModelStatus

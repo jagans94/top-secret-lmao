@@ -1,15 +1,6 @@
 import grpc
 from google.protobuf import text_format
 
-def _unwrap_pb(obj):
-    if isinstance(obj, Message):
-        return obj._protobuf
-    return obj
-
-def _wrap_pb(wp, pb):
-    wp._protobuf.CopyFrom(pb)
-    return wp
-
 class Message(object):
     def __init__(self, protobuf, **kwargs):
         self._protobuf = protobuf
@@ -71,40 +62,15 @@ class Message(object):
 
     @staticmethod
     def unwrap_pb(obj):
-        return _unwrap_pb(obj)
-
-    @staticmethod
-    def wrap_pb(wp, pb):
-        return _wrap_pb(wp, pb)
+        if isinstance(obj, Message):
+            return obj._protobuf
+        return obj
 
 
 class GRPCService(object):
     def __init__(self, server, **kwargs):
         self.channel = self.create_insecure_channel(server)
 
-    def create_secure_channel(self, server, cred):
-        raise NotImplementedError
-
-    def create_insecure_channel(self, server):
-        return grpc.insecure_channel(server)
-
-    def handle_async(self, rpc_method, callback, **rpc_kwargs):
-        future = rpc_method.future(**rpc_kwargs)
-        future.add_done_callback(callback)
-
-    @staticmethod
-    def unwrap_pb(obj):
-        return _unwrap_pb(obj)
-
-    @staticmethod
-    def wrap_pb(wp, pb):
-        return _wrap_pb(wp, pb)
-
-
-# TODO: A class for message map containers
-class MessageMap(Message):
-    def __init__(self, **kwargs):
-        pass
 
 # A container class for a list of messages
 class MessageList(Message):
