@@ -106,6 +106,7 @@ class ModelVersionStatus(Message):
 
 class PredictRequest(Message):
     def __init__(self, model_spec=None, inputs=None, output_filter=None, **kwargs):
+        self.input_shape = kwargs.pop('input_shape', None)
         super().__init__(predict_pb2.PredictRequest(),
                          model_spec=model_spec,
                          inputs=inputs,
@@ -130,9 +131,9 @@ class PredictRequest(Message):
         return self._protobuf.inputs
 
     @inputs.setter
-    def inputs(self, _dict):
-        for key, values in _dict.items():
-            self._protobuf.inputs[key].CopyFrom(_make_tensor_proto(values))
+    def inputs(self, _dict_of_dicts):
+        for key, kwargs in _dict_of_dicts.items():
+            self._protobuf.inputs[key].CopyFrom(_make_tensor_proto(**kwargs))
         self.__set_in_parent__()
 
     # type: (repeated) string

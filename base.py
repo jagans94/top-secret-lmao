@@ -71,6 +71,9 @@ class GRPCService(object):
     def __init__(self, server, **kwargs):
         self.channel = self.create_insecure_channel(server)
 
+    def create_insecure_channel(self, server):
+        return grpc.insecure_channel(server)
+
 
 # A container class for a list of messages
 class MessageList(Message):
