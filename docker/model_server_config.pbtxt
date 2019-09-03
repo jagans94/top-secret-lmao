@@ -1,0 +1,22 @@
+model_config_list {
+  config {
+    name: "mnist"
+    base_path: "/tmp/models/mnist"
+    model_platform: "tensorflow"
+    model_version_policy {
+      specific {
+        versions: 1
+      }
+    }
+  }
+  config {
+    name: "fashion_model"
+    base_path: "/tmp/models/fashion_model"
+    model_platform: "tensorflow"
+    model_version_policy {
+      specific {
+        versions: 1
+      }
+    }
+  }
+}
