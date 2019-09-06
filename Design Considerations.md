@@ -1,119 +1,70 @@
 # **Design** Considerations
 
-### API consistency
+**Note:** `protobuf` and `pb` interchangeably refer to the same thing, i.e. protocol buffers object.
 
-The library abstracts away working directly with protocol buffers and replaces that with wrapper
+## Guidelines:
 
-Simply put, what you put in i
+1. Don't change what's already working.
+2. Where change is required, do so in a complementary way.
 
-If the return object of a method is a protocol buffer message, then the message should be wrapped using  transformed to a wrapper object which implements custom functions and  of the class corresponding to the protocol buffer message defined.
+## Simplicity and Customisation
 
-The wrapper is built on top of protocol buffers `message` type. The whole idea of the wrapper is to abstract away the fact that you're working with protocol buffers and simplify 
+The wrapper provides one-line invocation for many useful  `protobuf` functions as well as extends it in different ways for specific `protobuf` message/service definitions. 
 
-### Mirroring:
+Most of the methods that accept a wrapped `pb` instance also work fine with the internal `pb` message.
 
-The idea is to  mirror the internal state of the child `pb` inside the parent `pb`  using a wrapper, without breaking chain assignment while providing consistency across APIs. 
+## Getting and Setting attributes
 
-Only implemented for non-scalar, singular and repeated fields, a.k.a. the message and repeated message types. 
+Simplifying interface for setting some complex `attr`s (i.e. nested `pb` messages, `ListValue` instances etc.) that can't be set directly is done by customising the derived class. 
 
-**Fact:** Protocol buffer messages generated from the compiled `.proto` files can consist of nested protocol buffer, i.e. `pb` messages.
+This makes sense, since each `protobuf` definition is different, which is done by writing custom `getter` and `setter` methods for the necessary `protobuf` attributes.
 
-When performing a `getattr` on the parent `pb` message for fetching a child `pb` message, things get a little tricky. 
+## API consistency
 
-- Firstly, the returned object should be a wrapped child `pb` message for API consistency. However, wrapping with an ad-hoc wrapper is a bad idea, since this would break [chain assignment]().
-- Secondly, the wrapped child `pb` message should reflect the state of the child `pb` message as is in the parent `pb` message.
+The library abstracts away working directly with protocol buffers. It does so by providing a wrapper class around each definition.
 
-To implement this, we return a wrapped child `pb` message instead of the child `pb`message itself. The wrapper is treated as a static property of the wrapped parent `pb` message. The internal state of the child `pb` message is copied into the wrapper object before returning. To reiterate, this allows for consistency in internal state when accessing the attribute through the dot `(.)` operator as well as API 
+As a principle, it doesn't expect the user to work with protocol buffers directly, even though that's an option, but instead work with the abstraction layer provided as part of the library. 
 
-This is only implemented for Messages nested as static attributes of parent messages, a.k.a child messages.
+This is especially true while returning nested `pb` message attributes from inside a parent `pb` message. The nested `pb` message is wrapped in a corresponding class to provide a consistent API interface.
 
-When retrieving child messages using `getter` method/s, the respective protocol buffer should be returned as instances of their corresponding wrapper class in order to maintain consistency across the API. 
+## Mirroring
 
-Main issues:
+In order to provide API consistency, without breaking features that made working with `protobuf` great in the first place,  we simply replicate/mirror the ***internal*** (part of the internal `protobuf` object) nested `pb` message attribute to an ***external*** (part of the wrapper, but exists outside of the internal `protobuf` object) `pb` wrapped message attribute. 
 
-- The returned message should not be wrapped in an ad-hoc wrapper, since this would break *<u>chain getting/setting of values</u>* supported by `protobuf`. [Link]()
-- Violates an important design consideration, i.e. **"Don't replace or break what's already working. Augment it!"**
+The external attribute is attached to the parent `pb` wrapper message, in a way so as to reflect any changes in the internal `protobuf` state, i.e. through chained assignment. 
 
-Proposed two part solution (discussed in chain getting/setting and mirroring):
+This only applies to non-scalar (singular and repeated) fields, a.k.a. the message and repeated message types.  For scalar (singular or repeated) fields, the `getter` and `setter` methods directly exposes the internal `protobuf` state.
 
-- The returned message should implement a static attribute look-up for the wrapped instance to avoid unneeded wrapper generation on calls to the `getter` method/s while returning a static wrapped instance which reflects the protocol buffer of the child message. This makes sure the returned o
-- Assigning values to internal attributes of a child message should reflect in 
+## Chained Assignment
+
+Here's an example to explain what chained assignment looks like. Let's say we want to initialise a predict request. It goes something like this:
+
+```python
+model_spec = ModelSpec(name='mnist', signature_name='serving_default', version=1)
+predict_request = PredictRequest(model_spec=model_spec)
+```
+
+## Response messages and wrappers
+
+Response `pb` messages shouldn't be modifiable unless we want to insert some business logic into it and thereby transform it for delayed consumption. 
+
+Response wrappers provide a non-mutable interface to the underlying response `pb` .
+
+To be explicit, any modifications to the the response object can only be done directly on the internal `pb` message.
+
+## Catching Errors
+
+Since, `google.protobuf.message` takes care of handling most of the errors, it shouldn't be a problem. 
+
+IMO, letting  errors percolate with sensible warnings should be the way to go, i.e. shouldn't cause the user to go mad. 
+
+## Limitations
+
+Currently, the main limitation is in the form of chained assignment on items inside `MessageList` container. `MessageList` container wraps around repeated message type (objects that are sometimes found in a `protobuf` definition) which for almost all purposes act like a python `list` object.
+
+Another limitation is the current dependency on TensorFlow library for converting `np.array` inputs to `tensor_proto` and vice-versa. Though, the code for the that can be divorced from the TensorFlow library, some dependencies are too long or complicated to trace back and support. Therefore, right now a simple adaptation of the code is used, where required.
 
 
-
-
-
-The first is chained getting, i.e. any operator/function which upon invocation can/does change the state of the child message, but is  returns and the other chained  This is done by initialising the wrapped child message as a property of the parent message wrapper. The wrapped child message [mirrors]() the child pro
-
-- This gett
-
-### Don't replace what's already working. Augment it!
-
-### Chain getting/setting:
-
-### Design Considerations
-
-### Compiled Python Code:  <WHY ARE YOU TELLING THIS>
-
-Each message defined in the `.proto` files can (and some do) consist of multiple nested messages and  complex (i.e. read as repeated, map) scalar as well as non-scalar fields. The compiler doesn't generate your data access code for you directly. Instead, it generates special descriptors for all your messah
-
-ges, enums, and fields, and some mysteriously empty classes, one for each message type and uses uses [Python metaclass](https://docs.python.org/2.7/reference/datamodel.html#metaclasses) to do the real work. 
-
-### Getting and Setting attributes:
-
-Simplifying interface for setting some complex `attr`s that can't be set directly should be done by customising the derived class to manage around the said `attr`s. This makes sense, since each `protobuf` definition is different. This can be done by writing custom `getter` and `setter` methods for the necessary `protobuf` attributes.
-
-### Catching Errors
-
-Since, `google.protobuf.message` takes care of handling most of the errors, it shouldn't be a problem. IMO, letting  errors percolate with sensible warnings should be the way to go, i.e. shouldn't cause the user to go mad. 
-
-### Nested Messages: 
-
-### `protobuf`
-
-Each wrapper class contains a private `protobuf` attribute, which is an instance of the compiled `.proto` file.  Nested child messages, i.e. provided either during initialisation or otherwise, are unwrapped before applying methods from `google.protobuf` library. 
-
-Two major issues:
-
-1. The nested child message is always considered to be an instance of the wrapper class.
-2. Every input method accepting such instance, should need to unwrap the object before processing it.
-
-<More clarification required>
-
-### Internal vs External:
-
-Each wrapper class contains a private `protobuf` attribute, which is an instance of a protocol buffer message compiled from the corresponding `.proto` file.  Each protocol buffer message can consist of nested child messages, which results in two main complications while working with them:
-
-- The child messages (as well as other non-singular fields) cannot be assigned directly. They can be assigned, by setting any of the attributes of the child message or by calling `SetInParent()` method on the said child message.
-- The wrapper, i.e. the `Message` class and its sub-classes, abstract around the protocol buffer
-
-### Request vs Response:
-
-Shouldn't be able to set values to response attributes; therefore initialisation support can be removed.
-
-### Defining Message Classes:
-
-Non-complicated message types that who values can be set and gotten easily remain non-modified and in general not implemented. 
-
-However, complicated ones are broken down to make easier pythonic interfaces.
-
-Reusable (across APIs) dependencies are defined separately, whereas dependencies specific to a single (or an already grouped set of APIs) are defined along with the corresponding APIs.
-
-### Duck Typing
-
-**The idea:** Don't replace the internal mechanism, but augment it. 
-
-The wrapper around `protobuf` messages aims to provide a flexible pythonic interface while also preserving the flexibility that comes in-built with it as part of  `google.protobuf`  library as well as provide an easier way of interfacing with some functionalities that's always used. <EDIT LATER>
-
-It does this in the following way:
-
-1. Exposes general `protobuf` functionalities to allow manipulation of internal attributes in an easy format <REWRITE WHAT THIS MEANS>
-2. Complex fields/attributes in `protobuf` cannot be assigned to directly using `setattr` or `=` sign. To overcome this, the library provides custom `getter` and `setter` methods that allow such direct manipulation.
-3. Issue with nested message fields: What do I return if the attribute of a `protobuf` message is another message? Well, to retain consistency across the API. 
-
-Want to add
-
-## 
 
 
 
