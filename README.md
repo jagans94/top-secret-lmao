@@ -14,19 +14,19 @@ Implements `GetModelMetadata`, `GetModelStatus`, `HandleReloadConfig` and `Predi
 
 It doesn't completely abstract away working with protocol buffers. The internal protocol buffer can still be accessed and manipulated using methods specific to protocol buffers. This is preferred when working with gRPC clients that expect raw protocol buffers.
 
-## Motivation:
+## Motivation
 
 I ask myself this now and then, so once for all, I'm putting it **down** in *mark____*.  ;P
 
 - Working with `protobuf` should be simple, i.e. the message objects should work like any other python objects. They don't! (specifically, getting and setting values)
 - Tensorflow Serving documentation doesn't cover [gRPC client API](https://github.com/tensorflow/serving/tree/master/tensorflow_serving/apis), and there is little available, mostly sparse, reference for implementing the gRPC clients for TensorFlow Serving.
-- If it ain't broke, don't fix it, improve it. ~*subjective*~
+- If it ain't broke, don't fix it, improve it.
 
 The repo started as a by-product of working with Tensorflow Serving, mostly focusing on implementing a distributed serving mechanism for all models [Tensorflow](https://www.tensorflow.org/) and otherwise.
 
 ## How to start using it?
 
-### Install client:
+### Install this client:
 
 ```bash
 pip install <>
@@ -55,7 +55,9 @@ gRPC predict requests have a lot smaller latency profile (approx. 6 times faster
 
 **Note:** Code for bench marking can be found at  [tests/comparison_http_vs_grpc_prediction_request_response.ipynb](https://github.com/jagans94/top-secret-lmao/blob/master/tests/comparison_http_vs_grpc_prediction_request_response.ipynb)
 
-## To Do:
+## To Do
+
+The basic implementation is almost complete. However, there are some add-ons that would be well worth to add. Here are some:
 
 ### General
 
@@ -67,6 +69,7 @@ gRPC predict requests have a lot smaller latency profile (approx. 6 times faster
 - [ ] Implement `Classify`,  `Regress` and `MultiInference` APIs.
 - [ ] Write test script for expected behaviours for each wrapper class as well as a generic test suite covering the base class implementation.
 - [ ] Add parser for reading `signature_def` from  `GetModelMetadataResponse`.
+- [ ] Extend `tensor_proto` conversion utilities to fully support all operations supported natively in TensorFlow.
 
 ### gRPC
 

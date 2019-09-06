@@ -9,7 +9,7 @@ from tensorflow_serving.apis import model_service_pb2_grpc
 from base import Message, GRPCService
 from config import ModelConfig, ModelConfigList
 from util import Status
-from tfs_utils import _make_tensor_proto, _make_ndarray
+from tf_utils import _make_tensor_proto, _make_ndarray
 
 
 class ModelSpec(Message):
